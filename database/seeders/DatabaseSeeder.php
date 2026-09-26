@@ -13,9 +13,6 @@ class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
 
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
         $curriculumUser = User::create([
@@ -55,6 +52,7 @@ class DatabaseSeeder extends Seeder
             StudentSeeder::class,
             PeriodSeeder::class,
             ScheduleSeeder::class,
+            JournalSeeder::class,
         ]);
     }
 }
