@@ -47,5 +47,13 @@ class DatabaseSeeder extends Seeder
                 'code' => $teacher['code'],
             ]);
         }
+
+        $this->call([
+            MajorSeeder::class,
+            ClassSeeder::class,
+            SubjectSeeder::class,
+            StudentSeeder::class,
+            PeriodSeeder::class,
+        ]);
     }
 }
