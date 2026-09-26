@@ -1,34 +1,79 @@
-import { usePage } from "@inertiajs/react"
-import { CircleAlertIcon, CircleCheckIcon } from "lucide-react"
+import { useEffect } from "react";
+import { router, usePage } from "@inertiajs/react";
+import { Toaster, toast } from "sonner";
 
-import { cn } from "cn"
+import type { Flash, PageProps } from "@/types";
+
+function notifyFlash(flash: Flash | null | undefined) {
+    if (flash?.success) {
+        toast.success("Berhasil", { description: flash.success });
+    }
+
+    if (flash?.error) {
+        toast.error("Gagal", { description: flash.error });
+    }
+}
+
+function notifyErrors(errors: Record<string, string | string[]> | undefined) {
+    const messages = Object.values(errors ?? {})
+        .flat()
+        .filter(Boolean);
+
+    if (messages.length === 0) {
+        return;
+    }
+
+    toast.error("Terjadi kesalahan", {
+        description: String(messages[0]),
+    });
+}
 
 export function FlashAlert() {
-  const { props } = usePage()
-  const flash = props.flash
+    const { flash, errors } = usePage<PageProps>().props;
 
-  if (!flash?.success && !flash?.error) {
-    return null
-  }
+    useEffect(() => {
+        notifyFlash(flash);
+        notifyErrors(errors);
 
-  const isSuccess = Boolean(flash.success)
+        const offSuccess = router.on("success", (event) => {
+            const page = event.detail.page.props as PageProps;
+            notifyFlash(page.flash);
+        });
 
-  return (
-    <div
-      role="status"
-      className={cn(
-        "flex items-center gap-2 rounded-lg border px-4 py-3 text-sm",
-        isSuccess
-          ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-          : "border-destructive/40 bg-destructive/10 text-destructive"
-      )}
-    >
-      {isSuccess ? (
-        <CircleCheckIcon className="size-4 shrink-0" />
-      ) : (
-        <CircleAlertIcon className="size-4 shrink-0" />
-      )}
-      <span>{isSuccess ? flash.success : flash.error}</span>
-    </div>
-  )
+        const offError = router.on("error", (event) => {
+            notifyErrors(event.detail.errors);
+        });
+
+        const offException = router.on("exception", (event) => {
+            toast.error("Aksi gagal", {
+                description:
+                    event.detail.exception.message ||
+                    "Terjadi kesalahan saat menghubungi server.",
+            });
+        });
+
+        return () => {
+            offSuccess();
+            offError();
+            offException();
+        };
+        // Show leftover flash once after a full-page redirect; later visits use router events.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    return (
+        <Toaster
+            position="top-right"
+            richColors
+            closeButton
+            expand
+            duration={4500}
+            offset={{ top: 72, right: 16 }}
+            toastOptions={{
+                classNames: {
+                    toast: "max-w-sm",
+                },
+            }}
+        />
+    );
 }
