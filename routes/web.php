@@ -43,6 +43,10 @@ Route::prefix('curriculum')->name('curriculum.')->middleware(['auth', 'role:curr
         Route::delete('teachers/{teacher}', [ManagementTeacherController::class, 'destroy'])->name('teachers.destroy');
 
         Route::get('students', [ManagementStudentController::class, 'index'])->name('students');
+        Route::post('students', [ManagementStudentController::class, 'store'])->name('students.store');
+        Route::put('students/{student}', [ManagementStudentController::class, 'update'])->name('students.update');
+        Route::delete('students/{student}', [ManagementStudentController::class, 'destroy'])->name('students.destroy');
+
         Route::get('subjects', [ManagementSubjectController::class, 'index'])->name('subjects');
         Route::get('schedules', [ManagementScheduleController::class, 'index'])->name('schedules');
     });
