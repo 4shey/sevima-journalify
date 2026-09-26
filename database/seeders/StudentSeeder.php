@@ -8,29 +8,34 @@ use Illuminate\Database\Seeder;
 
 class StudentSeeder extends Seeder
 {
-    /**
-     * Seed five students spread over the seeded classrooms.
-     */
     public function run(): void
     {
-        $findClassroom = fn (string $major, string $grade): Classroom => Classroom::query()
-            ->whereHas('major', fn ($query) => $query->where('name', $major))
-            ->where('grade', $grade)
-            ->firstOrFail();
+        $class1 = Classroom::where('grade', 'X')->firstOrFail();
+        $class2 = Classroom::where('grade', 'XI')->firstOrFail();
 
-        $students = [
-            ['name' => 'Agus Salim', 'classroom' => $findClassroom('RPL', 'X'), 'attendance_number' => 1],
-            ['name' => 'Dewi Lestari', 'classroom' => $findClassroom('RPL', 'X'), 'attendance_number' => 2],
-            ['name' => 'Rizky Ramadhan', 'classroom' => $findClassroom('RPL', 'XI'), 'attendance_number' => 1],
-            ['name' => 'Putri Amelia', 'classroom' => $findClassroom('DKV', 'X'), 'attendance_number' => 1],
-            ['name' => 'Joko Susilo', 'classroom' => $findClassroom('DKV', 'XI'), 'attendance_number' => 1],
+        $studentsClass1 = [
+            'Andi Pratama', 'Budi Kurniawan', 'Citra Dewi', 'Doni Saputra', 'Eka Rahmawati',
+            'Fajar Hidayat', 'Gita Lestari', 'Hendra Wijaya', 'Indah Permata', 'Joko Widodo',
         ];
 
-        foreach ($students as $student) {
+        foreach ($studentsClass1 as $index => $name) {
             Student::create([
-                'name' => $student['name'],
-                'class_id' => $student['classroom']->id,
-                'attendance_number' => $student['attendance_number'],
+                'class_id' => $class1->id,
+                'name' => $name,
+                'attendance_number' => $index + 1,
+            ]);
+        }
+
+        $studentsClass2 = [
+            'Kevin Sanjaya', 'Lilis Suryani', 'Muhammad Rizky', 'Nadia Putri', 'Octavio Ramadhan',
+            'Putu Ayu', 'Qori Ahmad', 'Rian Ardianto', 'Sinta Nurhaliza', 'Taufik Hidayat',
+        ];
+
+        foreach ($studentsClass2 as $index => $name) {
+            Student::create([
+                'class_id' => $class2->id,
+                'name' => $name,
+                'attendance_number' => $index + 1,
             ]);
         }
     }
