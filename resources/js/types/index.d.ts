@@ -61,18 +61,20 @@ export type SchoolDay =
 
 export type AttendanceStatus = 'H' | 'A' | 'I' | 'S';
 
-export interface Journal {
-    id: string;
-    name: string;
-    date: string;
-    schedule_detail_id: string;
-}
-
 export interface Attendance {
     id: string;
     journal_id: string;
     student_id: string;
     status: AttendanceStatus;
+    student?: Student | null;
+}
+
+export interface Journal {
+    id: string;
+    name: string;
+    date: string;
+    schedule_detail_id: string;
+    attendances?: Attendance[];
 }
 
 export interface ScheduleDetail {
@@ -120,6 +122,14 @@ export interface Flash {
     error?: string | null;
 }
 
+export interface SimulatedTimeInfo {
+    is_set: boolean;
+    datetime: string;
+    date: string;
+    time: string;
+    formatted: string;
+}
+
 export type PageProps<
     T extends Record<string, unknown> = Record<string, unknown>,
 > = T & {
@@ -128,4 +138,6 @@ export type PageProps<
     };
     ziggy: Config & { location: string };
     flash: Flash | null;
+    errors: Record<string, string>;
+    simulatedTime?: SimulatedTimeInfo;
 };
