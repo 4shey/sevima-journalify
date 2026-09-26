@@ -8,6 +8,7 @@ import {
   LayoutDashboardIcon,
   LogOutIcon,
   NotebookPenIcon,
+  SchoolIcon,
   UsersIcon,
   GalleryVerticalEndIcon,
   type LucideIcon,
@@ -82,6 +83,11 @@ export default function CurriculumLayout({
           label: "Siswa",
           href: route("curriculum.management.students", {}, false),
           icon: GraduationCapIcon,
+        },
+        {
+          label: "Kelas",
+          href: route("curriculum.management.classes", {}, false),
+          icon: SchoolIcon,
         },
         {
           label: "Mapel",

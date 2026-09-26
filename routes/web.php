@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Curriculum\DashboardController as CurriculumDashboardController;
+use App\Http\Controllers\Curriculum\Management\ClassroomController as ManagementClassroomController;
 use App\Http\Controllers\Curriculum\Management\ScheduleController as ManagementScheduleController;
 use App\Http\Controllers\Curriculum\Management\StudentController as ManagementStudentController;
 use App\Http\Controllers\Curriculum\Management\SubjectController as ManagementSubjectController;
@@ -51,6 +52,11 @@ Route::prefix('curriculum')->name('curriculum.')->middleware(['auth', 'role:curr
         Route::post('subjects', [ManagementSubjectController::class, 'store'])->name('subjects.store');
         Route::put('subjects/{subject}', [ManagementSubjectController::class, 'update'])->name('subjects.update');
         Route::delete('subjects/{subject}', [ManagementSubjectController::class, 'destroy'])->name('subjects.destroy');
+
+        Route::get('classes', [ManagementClassroomController::class, 'index'])->name('classes');
+        Route::post('classes', [ManagementClassroomController::class, 'store'])->name('classes.store');
+        Route::put('classes/{classroom}', [ManagementClassroomController::class, 'update'])->name('classes.update');
+        Route::delete('classes/{classroom}', [ManagementClassroomController::class, 'destroy'])->name('classes.destroy');
 
         Route::get('schedules', [ManagementScheduleController::class, 'index'])->name('schedules');
     });
