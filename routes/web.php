@@ -38,6 +38,10 @@ Route::prefix('curriculum')->name('curriculum.')->middleware(['auth', 'role:curr
 
     Route::prefix('management')->name('management.')->group(function () {
         Route::get('teachers', [ManagementTeacherController::class, 'index'])->name('teachers');
+        Route::post('teachers', [ManagementTeacherController::class, 'store'])->name('teachers.store');
+        Route::put('teachers/{teacher}', [ManagementTeacherController::class, 'update'])->name('teachers.update');
+        Route::delete('teachers/{teacher}', [ManagementTeacherController::class, 'destroy'])->name('teachers.destroy');
+
         Route::get('students', [ManagementStudentController::class, 'index'])->name('students');
         Route::get('subjects', [ManagementSubjectController::class, 'index'])->name('subjects');
         Route::get('schedules', [ManagementScheduleController::class, 'index'])->name('schedules');
