@@ -18,8 +18,8 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(Request $request): Response
     {
-        if ($request->user()) {
-            return redirect()->to($this->homeFor($request->user()));
+        if ($user = $request->user()) {
+            return redirect()->to($this->homeFor($user));
         }
 
         return Inertia::render('Auth/Login');
@@ -33,8 +33,9 @@ class AuthenticatedSessionController extends Controller
         $request->authenticate();
 
         $request->session()->regenerate();
+        $request->session()->forget('url.intended');
 
-        return redirect()->intended($this->homeFor($request->user()));
+        return redirect()->to($this->homeFor($request->user()));
     }
 
     /**
@@ -52,12 +53,12 @@ class AuthenticatedSessionController extends Controller
     }
 
     /**
-     * Get the dashboard home for the given user based on their role.
+     * Get the default home for the given user based on their role.
      */
     private function homeFor(User $user): string
     {
         return $user->isTeacher()
-            ? route('teacher.dashboard', absolute: false)
+            ? route('teacher.schedule', absolute: false)
             : route('curriculum.dashboard', absolute: false);
     }
 }

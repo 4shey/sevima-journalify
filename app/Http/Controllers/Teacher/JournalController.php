@@ -17,9 +17,44 @@ use Inertia\Response;
 
 class JournalController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        return Inertia::render('teacher/Journal');
+        $teacher = $request->user()->teacher;
+        $search = trim((string) $request->query('search', ''));
+
+        $journals = Journal::query()
+            ->whereHas('scheduleDetail', fn ($q) => $q->where('teacher_id', $teacher?->id))
+            ->with([
+                'scheduleDetail.subject:id,name,code',
+                'scheduleDetail.classroom.major:id,name',
+                'scheduleDetail.startPeriod:id,order,start_time,end_time',
+                'scheduleDetail.endPeriod:id,order,start_time,end_time',
+                'attendances.student:id,name,attendance_number',
+            ])
+            ->withCount([
+                'attendances',
+                'attendances as hadir_count' => fn ($q) => $q->where('status', 'H'),
+                'attendances as izin_count' => fn ($q) => $q->where('status', 'I'),
+                'attendances as sakit_count' => fn ($q) => $q->where('status', 'S'),
+                'attendances as alpha_count' => fn ($q) => $q->where('status', 'A'),
+            ])
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('date', 'like', "%{$search}%")
+                        ->orWhereHas('scheduleDetail.subject', fn ($sq) => $sq->where('name', 'like', "%{$search}%")->orWhere('code', 'like', "%{$search}%"))
+                        ->orWhereHas('scheduleDetail.classroom', fn ($cq) => $cq->where('grade', 'like', "%{$search}%"));
+                });
+            })
+            ->orderByDesc('date')
+            ->orderByDesc('created_at')
+            ->paginate(5)
+            ->withQueryString();
+
+        return Inertia::render('teacher/Journal', [
+            'journals' => $journals,
+            'filters' => ['search' => $search],
+        ]);
     }
 
     public function store(Request $request): RedirectResponse

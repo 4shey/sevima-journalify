@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react"
 import { Head, useForm } from "@inertiajs/react"
-import { NotebookPenIcon, ClockIcon } from "lucide-react"
+import { NotebookPenIcon, ClockIcon, CalendarDaysIcon } from "lucide-react"
 
-import { FlashAlert } from "@/components/management/flash-alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -88,9 +87,6 @@ const STATUS_OPTIONS: { value: AttendanceStatus; label: string }[] = [
 const statusItems = Object.fromEntries(
   STATUS_OPTIONS.map((option) => [option.value, option.label])
 )
-
-const statusLabel = (status: string) =>
-  STATUS_OPTIONS.find((option) => option.value === status)?.label ?? status
 
 const toSeconds = (value: string) => {
   const [hours, minutes, seconds] = value.split(":").map(Number)
@@ -192,32 +188,35 @@ export default function Schedule({
       return "Belum ada jadwal aktif. Hubungi kurikulum untuk mengaktifkan jadwal."
     }
     if (!isSchoolDay) {
-      return "Akhir pekan â€” tidak ada jadwal sekolah."
+      return "Akhir pekan - tidak ada jadwal sekolah hari ini."
     }
     if (todayDetails.length === 0) {
       return "Tidak ada jadwal mengajar hari ini."
     }
     if (currentDetail) {
-      return `Sedang berlangsung: ${currentDetail.subject?.name ?? "-"} (${formatTime(currentDetail.start_period?.start_time ?? "")}â€“${formatTime(currentDetail.end_period?.end_time ?? "")}).`
+      return `Sedang berlangsung: ${currentDetail.subject?.name ?? "-"} (${formatTime(currentDetail.start_period?.start_time ?? "")}-${formatTime(currentDetail.end_period?.end_time ?? "")}).`
     }
+
     const first = todayDetails[0]
+    const boundsFirst = boundsOf(first)
+    if (boundsFirst && nowSeconds < boundsFirst[0]) {
+      return `Belum dimulai - jadwal pertama pukul ${formatTime(first.start_period?.start_time ?? "")} WIB.`
+    }
+
     const last = todayDetails[todayDetails.length - 1]
-    const firstStart = toSeconds(first.start_period?.start_time ?? "00:00:00")
-    const lastEnd = toSeconds(last.end_period?.end_time ?? "00:00:00")
-    if (nowSeconds < firstStart) {
-      return `Belum dimulai â€” jadwal pertama pukul ${formatTime(first.start_period?.start_time ?? "")} WIB.`
+    const boundsLast = boundsOf(last)
+    if (boundsLast && nowSeconds > boundsLast[1]) {
+      return "Selesai - seluruh jadwal mengajar Anda hari ini telah berakhir."
     }
-    if (nowSeconds > lastEnd) {
-      return "Selesai â€” seluruh jadwal hari ini telah berakhir."
-    }
-    const next = todayDetails.find(
-      (detail) => nowSeconds < toSeconds(detail.start_period?.start_time ?? "00:00:00")
-    )
-    return `Jeda â€” jadwal berikutnya pukul ${formatTime(next?.start_period?.start_time ?? "")} WIB.`
+
+    const next = todayDetails.find((d) => {
+      const b = boundsOf(d)
+      return b && nowSeconds < b[0]
+    })
+    return `Jeda - jadwal berikutnya pukul ${formatTime(next?.start_period?.start_time ?? "")} WIB.`
   })()
 
   const openJournal = (detail: ScheduleDetail) => {
-    if (!canCreate(detail)) return
     form.clearErrors()
     form.setData({
       schedule_detail_id: detail.id,
@@ -258,99 +257,100 @@ export default function Schedule({
       )
     : []
 
+  const renderCard = (detail: ScheduleDetail, interactive: boolean) => {
+    const status = statusOf(detail)
+    const creatable = interactive && canCreate(detail)
+    const showStatus = interactive && detail.day === weekday
+
+    return (
+      <Card
+        key={detail.id}
+        className={
+          creatable
+            ? "cursor-pointer border-primary/50 bg-primary/5 shadow-xs transition-colors hover:border-primary"
+            : undefined
+        }
+        onClick={creatable ? () => openJournal(detail) : undefined}
+      >
+        <CardHeader>
+          <div className="flex flex-col gap-0.5">
+            <CardTitle>
+              {detail.subject?.name ?? "-"}
+              {detail.subject ? ` (${detail.subject.code})` : ""}
+            </CardTitle>
+            <CardDescription>
+              {detail.classroom?.label ?? "-"}
+            </CardDescription>
+          </div>
+          {showStatus && (
+            <CardAction>
+              <Badge
+                variant={
+                  status === "Berlangsung"
+                    ? "default"
+                    : status === "Selesai"
+                      ? "secondary"
+                      : "outline"
+                }
+              >
+                {status}
+              </Badge>
+            </CardAction>
+          )}
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <span className="inline-flex items-center gap-1.5">
+            <ClockIcon className="size-3.5 text-muted-foreground" />
+            <span className="tabular-nums">
+              {detail.start_period
+                ? formatTime(detail.start_period.start_time)
+                : "?"}
+              {" - "}
+              {detail.end_period
+                ? formatTime(detail.end_period.end_time)
+                : "?"}
+            </span>
+          </span>
+          <span className="text-muted-foreground">
+            Jam ke-{detail.start_period?.order ?? "?"} - {detail.end_period?.order ?? "?"}
+          </span>
+        </CardContent>
+        {interactive && (
+          <CardFooter className="justify-between gap-3">
+            {detail.journal ? (
+              <Badge variant="secondary">✓ Jurnal Sudah Dibuat</Badge>
+            ) : creatable ? (
+              <span className="inline-flex items-center gap-2 text-sm font-medium text-primary">
+                <NotebookPenIcon className="size-4" />
+                Buat Jurnal Pelajaran
+              </span>
+            ) : (
+              <span className="text-sm text-muted-foreground">
+                {status === "Selesai"
+                  ? "Jurnal tidak dapat dibuat - jam pelajaran sudah selesai."
+                  : "Jurnal hanya dapat dibuat saat jam pelajaran berlangsung."}
+              </span>
+            )}
+          </CardFooter>
+        )}
+      </Card>
+    )
+  }
+
   const renderDayCards = (day: SchoolDay, interactive: boolean) => {
     const dayDetails = sortedForDay(details, day)
 
     if (dayDetails.length === 0) {
       return (
         <p className="py-6 text-center text-sm text-muted-foreground">
-          Tidak ada jadwal pada hari ini.
+          Tidak ada jadwal mengajar pada hari {DAY_LABELS[day] ?? day}.
         </p>
       )
     }
 
     return (
       <div className="grid gap-3">
-        {dayDetails.map((detail) => {
-          const status = statusOf(detail)
-          const creatable = interactive && canCreate(detail)
-          const showStatus = day === weekday
-
-          return (
-            <Card
-              key={detail.id}
-              className={
-                creatable
-                  ? "cursor-pointer transition-colors hover:border-ring/50"
-                  : undefined
-              }
-              onClick={creatable ? () => openJournal(detail) : undefined}
-            >
-              <CardHeader>
-                <div className="flex flex-col gap-0.5">
-                  <CardTitle>
-                    {detail.subject?.name ?? "-"}
-                    {detail.subject ? ` (${detail.subject.code})` : ""}
-                  </CardTitle>
-                  <CardDescription>
-                    {detail.classroom?.label ?? "-"}
-                  </CardDescription>
-                </div>
-                {showStatus && (
-                  <CardAction>
-                    <Badge
-                      variant={
-                        status === "Berlangsung"
-                          ? "default"
-                          : status === "Selesai"
-                            ? "secondary"
-                            : "outline"
-                      }
-                    >
-                      {status}
-                    </Badge>
-                  </CardAction>
-                )}
-              </CardHeader>
-              <CardContent className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                <span className="inline-flex items-center gap-1.5">
-                  <ClockIcon className="size-3.5 text-muted-foreground" />
-                  <span className="tabular-nums">
-                    {detail.start_period
-                      ? formatTime(detail.start_period.start_time)
-                      : "?"}
-                    â€“
-                    {detail.end_period
-                      ? formatTime(detail.end_period.end_time)
-                      : "?"}
-                  </span>
-                </span>
-                <span className="text-muted-foreground">
-                  Jam ke-{detail.start_period?.order ?? "?"}â€“
-                  {detail.end_period?.order ?? "?"}
-                </span>
-              </CardContent>
-              {interactive && (
-                <CardFooter className="justify-between gap-3">
-                  {detail.journal ? (
-                    <Badge variant="secondary">Jurnal dibuat</Badge>
-                  ) : creatable ? (
-                    <span className="inline-flex items-center gap-2 text-sm font-medium">
-                      <NotebookPenIcon className="size-4" />
-                      Buat Jurnal
-                    </span>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">
-                      {status === "Selesai"
-                        ? "Jurnal tidak dapat dibuat â€” jam pelajaran sudah selesai."
-                        : "Jurnal hanya dapat dibuat saat jam pelajaran berlangsung."}
-                    </span>
-                  )}
-                </CardFooter>
-              )}
-            </Card>
-          )
-        })}
+        {dayDetails.map((detail) => renderCard(detail, interactive))}
       </div>
     )
   }
@@ -360,31 +360,32 @@ export default function Schedule({
       <Head title="Jadwal" />
 
       <div className="flex flex-col gap-1.5">
-        <h1 className="text-2xl font-semibold tracking-tight">Jadwal</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Jadwal Mengajar</h1>
         <p className="text-muted-foreground">
           {schedule
-            ? `${schedule.name} â€” aktif sejak ${formatDate(schedule.active_date)}.`
+            ? `${schedule.name} - aktif sejak ${formatDate(schedule.active_date)}.`
             : "Belum ada jadwal aktif."}
         </p>
       </div>
 
-      <FlashAlert />
-
-      <Tabs defaultValue="now">
+      <Tabs defaultValue="now" className="w-full">
         <TabsList className="h-auto flex-wrap">
-          <TabsTrigger value="now">Jadwal Sekarang</TabsTrigger>
-          {DAY_TABS.map((day) => (
-            <TabsTrigger key={day} value={day}>
-              {DAY_LABELS[day]}
-            </TabsTrigger>
-          ))}
+          <TabsTrigger value="now" className="gap-2">
+            <ClockIcon className="size-4" />
+            Jadwal Sekarang
+          </TabsTrigger>
+          <TabsTrigger value="week" className="gap-2">
+            <CalendarDaysIcon className="size-4" />
+            Jadwal Minggu Ini
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="now" className="flex flex-col gap-3">
+        {/* Main Tab 1: Jadwal Sekarang (Menampilkan 1 kartu interaktif jika SEDANG BERLANGSUNG) */}
+        <TabsContent value="now" className="flex flex-col gap-3 pt-2">
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
             <p className="font-medium">{formatDate(today)}</p>
             <p className="text-muted-foreground">
-              Pukul <span className="tabular-nums">{clock}</span> WIB
+              Pukul <span className="tabular-nums font-semibold">{clock}</span> WIB
             </p>
           </div>
 
@@ -399,14 +400,37 @@ export default function Schedule({
             <p>{banner}</p>
           </div>
 
-          {renderDayCards(weekday as SchoolDay, true)}
+          {currentDetail ? (
+            renderCard(currentDetail, true)
+          ) : (
+            <div className="rounded-xl border border-dashed p-8 text-center">
+              <ClockIcon className="mx-auto size-8 text-muted-foreground/50" />
+              <h3 className="mt-2 text-sm font-semibold">Tidak Ada Jam Pelajaran Berlangsung</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {banner}
+              </p>
+            </div>
+          )}
         </TabsContent>
 
-        {DAY_TABS.map((day) => (
-          <TabsContent key={day} value={day}>
-            {renderDayCards(day, false)}
-          </TabsContent>
-        ))}
+        {/* Main Tab 2: Jadwal Minggu Ini (Menampilkan tab Senin-Jumat tanpa penanda Hari Ini) */}
+        <TabsContent value="week" className="flex flex-col gap-4 pt-2">
+          <Tabs defaultValue={isSchoolDay ? (weekday as SchoolDay) : "Monday"} className="w-full">
+            <TabsList className="h-auto flex-wrap bg-muted/60">
+              {DAY_TABS.map((day) => (
+                <TabsTrigger key={day} value={day}>
+                  {DAY_LABELS[day]}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            {DAY_TABS.map((day) => (
+              <TabsContent key={day} value={day} className="pt-3">
+                {renderDayCards(day, false)}
+              </TabsContent>
+            ))}
+          </Tabs>
+        </TabsContent>
       </Tabs>
 
       <Dialog
@@ -417,10 +441,10 @@ export default function Schedule({
       >
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Buat Jurnal</DialogTitle>
+            <DialogTitle>Buat Jurnal Pelajaran</DialogTitle>
             <DialogDescription>
               {formDetail
-                ? `${formDetail.subject?.name ?? "-"} â€¢ ${formDetail.classroom?.label ?? "-"} â€¢ ${DAY_LABELS[formDetail.day] ?? formDetail.day}, ${formatDate(today)} â€¢ ${formatTime(formDetail.start_period?.start_time ?? "")}â€“${formatTime(formDetail.end_period?.end_time ?? "")}`
+                ? `${formDetail.subject?.name ?? "-"} • ${formDetail.classroom?.label ?? "-"} • ${DAY_LABELS[formDetail.day] ?? formDetail.day}, ${formatDate(today)} • ${formatTime(formDetail.start_period?.start_time ?? "")}-${formatTime(formDetail.end_period?.end_time ?? "")}`
                 : ""}
             </DialogDescription>
           </DialogHeader>
@@ -447,10 +471,11 @@ export default function Schedule({
                 <FieldError>{form.errors.attendances}</FieldError>
               </Field>
 
-              <div className="rounded-lg border">
+              <div className="overflow-x-auto rounded-xl border">
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-14 text-center">No</TableHead>
                       <TableHead className="w-20">No. Absen</TableHead>
                       <TableHead>Nama Siswa</TableHead>
                       <TableHead className="w-40">Status</TableHead>
@@ -460,7 +485,7 @@ export default function Schedule({
                     {journalStudents.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={3}
+                          colSpan={4}
                           className="h-24 text-center text-muted-foreground"
                         >
                           Tidak ada siswa pada kelas ini.
@@ -469,6 +494,9 @@ export default function Schedule({
                     ) : (
                       journalStudents.map((student, index) => (
                         <TableRow key={student.id}>
+                          <TableCell className="text-center tabular-nums text-muted-foreground">
+                            {index + 1}
+                          </TableCell>
                           <TableCell className="text-muted-foreground">
                             {student.attendance_number}
                           </TableCell>
