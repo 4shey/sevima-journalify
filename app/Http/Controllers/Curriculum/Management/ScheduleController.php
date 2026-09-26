@@ -10,8 +10,8 @@ use App\Models\Subject;
 use App\Models\Teacher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -158,7 +158,7 @@ class ScheduleController extends Controller
     }
 
     /**
-     * Reject end-before-start and overlapping periods within the same class and day.
+     * Reject end-before-start and overlapping periods within the same class/day or teacher/day.
      *
      * @param  array<int, array<string, string>>  $details
      * @return array<string, string>
@@ -167,7 +167,8 @@ class ScheduleController extends Controller
     {
         $orders = Period::query()->pluck('order', 'id');
         $errors = [];
-        $ranges = [];
+        $classRanges = [];
+        $teacherRanges = [];
 
         foreach ($details as $index => $detail) {
             $start = $orders[$detail['start_period_id']] ?? null;
@@ -183,16 +184,27 @@ class ScheduleController extends Controller
                 continue;
             }
 
-            $key = $detail['class_id'] . '|' . $detail['day'];
+            $classKey = $detail['class_id'].'|'.$detail['day'];
 
-            foreach ($ranges[$key] ?? [] as [$rangeStart, $rangeEnd, $otherIndex]) {
+            foreach ($classRanges[$classKey] ?? [] as [$rangeStart, $rangeEnd, $otherIndex]) {
                 if ($start <= $rangeEnd && $end >= $rangeStart) {
-                    $errors["details.{$index}.start_period_id"] = "Jadwal bentrok dengan detail ke-" . ($otherIndex + 1) . " pada hari dan kelas yang sama.";
+                    $errors["details.{$index}.start_period_id"] = 'Jadwal bentrok dengan detail ke-'.($otherIndex + 1).' pada hari dan kelas yang sama.';
                     break;
                 }
             }
 
-            $ranges[$key][] = [$start, $end, $index];
+            $classRanges[$classKey][] = [$start, $end, $index];
+
+            $teacherKey = $detail['teacher_id'].'|'.$detail['day'];
+
+            foreach ($teacherRanges[$teacherKey] ?? [] as [$rangeStart, $rangeEnd, $otherIndex]) {
+                if ($start <= $rangeEnd && $end >= $rangeStart) {
+                    $errors["details.{$index}.teacher_id"] = 'Jadwal guru bentrok dengan detail ke-'.($otherIndex + 1).' pada hari yang sama.';
+                    break;
+                }
+            }
+
+            $teacherRanges[$teacherKey][] = [$start, $end, $index];
         }
 
         return $errors;

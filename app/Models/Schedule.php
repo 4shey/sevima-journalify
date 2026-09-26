@@ -16,4 +16,12 @@ class Schedule extends Model
     {
         return $this->hasMany(ScheduleDetail::class);
     }
+
+    public static function effectiveOn(string $date): ?self
+    {
+        return static::query()
+            ->where('active_date', '<=', $date)
+            ->orderByDesc('active_date')
+            ->first();
+    }
 }

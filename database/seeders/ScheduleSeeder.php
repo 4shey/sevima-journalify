@@ -12,40 +12,67 @@ use Illuminate\Database\Seeder;
 
 class ScheduleSeeder extends Seeder
 {
-    /**
-     * Seed one schedule with details covering every class, weekday and five teaching slots.
-     */
     public function run(): void
     {
         $schedule = Schedule::create([
-            'name' => 'Jadwal Ganjil 2026/2027',
-            'active_date' => '2026-07-01',
+            'name' => 'Jadwal Utama Semester Ganjil 2026/2027',
+            'active_date' => '2026-09-21',
         ]);
 
         $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-        $slots = [[1, 2], [3, 4], [5, 6], [8, 9], [10, 11]];
-
         $periods = Period::orderBy('order')->get()->keyBy('order');
-        $classrooms = Classroom::orderBy('grade')->get();
+        $class1 = Classroom::where('grade', 'X')->firstOrFail();
+        $class2 = Classroom::where('grade', 'XI')->firstOrFail();
         $subjects = Subject::orderBy('code')->get();
-        $teachers = Teacher::orderBy('code')->get();
+        $teacher1 = Teacher::where('code', 'GUR-001')->firstOrFail();
+        $teacher2 = Teacher::where('code', 'GUR-002')->firstOrFail();
 
-        foreach ($classrooms as $classIndex => $classroom) {
-            foreach ($days as $dayIndex => $day) {
-                foreach ($slots as $slotIndex => [$startOrder, $endOrder]) {
-                    $rotation = ($classIndex + $dayIndex + $slotIndex);
+        $subjectIdx = 0;
 
-                    ScheduleDetail::create([
-                        'schedule_id' => $schedule->id,
-                        'class_id' => $classroom->id,
-                        'day' => $day,
-                        'start_period_id' => $periods[$startOrder]->id,
-                        'end_period_id' => $periods[$endOrder]->id,
-                        'subject_id' => $subjects[$rotation % $subjects->count()]->id,
-                        'teacher_id' => $teachers[$rotation % $teachers->count()]->id,
-                    ]);
-                }
-            }
+        foreach ($days as $day) {
+            ScheduleDetail::create([
+                'schedule_id' => $schedule->id,
+                'class_id' => $class1->id,
+                'day' => $day,
+                'start_period_id' => $periods[1]->id,
+                'end_period_id' => $periods[2]->id,
+                'subject_id' => $subjects[$subjectIdx % $subjects->count()]->id,
+                'teacher_id' => $teacher1->id,
+            ]);
+            $subjectIdx++;
+
+            ScheduleDetail::create([
+                'schedule_id' => $schedule->id,
+                'class_id' => $class2->id,
+                'day' => $day,
+                'start_period_id' => $periods[1]->id,
+                'end_period_id' => $periods[2]->id,
+                'subject_id' => $subjects[$subjectIdx % $subjects->count()]->id,
+                'teacher_id' => $teacher2->id,
+            ]);
+            $subjectIdx++;
+
+            ScheduleDetail::create([
+                'schedule_id' => $schedule->id,
+                'class_id' => $class1->id,
+                'day' => $day,
+                'start_period_id' => $periods[3]->id,
+                'end_period_id' => $periods[4]->id,
+                'subject_id' => $subjects[$subjectIdx % $subjects->count()]->id,
+                'teacher_id' => $teacher2->id,
+            ]);
+            $subjectIdx++;
+
+            ScheduleDetail::create([
+                'schedule_id' => $schedule->id,
+                'class_id' => $class2->id,
+                'day' => $day,
+                'start_period_id' => $periods[3]->id,
+                'end_period_id' => $periods[4]->id,
+                'subject_id' => $subjects[$subjectIdx % $subjects->count()]->id,
+                'teacher_id' => $teacher1->id,
+            ]);
+            $subjectIdx++;
         }
     }
 }
