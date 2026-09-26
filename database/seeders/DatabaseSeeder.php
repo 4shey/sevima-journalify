@@ -54,6 +54,7 @@ class DatabaseSeeder extends Seeder
             SubjectSeeder::class,
             StudentSeeder::class,
             PeriodSeeder::class,
+            ScheduleSeeder::class,
         ]);
     }
 }

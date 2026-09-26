@@ -32,6 +32,7 @@ Route::prefix('teacher')->name('teacher.')->middleware(['auth', 'role:teacher'])
     Route::get('dashboard', [TeacherDashboardController::class, 'index'])->name('dashboard');
     Route::get('schedule', [TeacherScheduleController::class, 'index'])->name('schedule');
     Route::get('journal', [TeacherJournalController::class, 'index'])->name('journal');
+    Route::post('journals', [TeacherJournalController::class, 'store'])->name('journals.store');
 });
 
 Route::prefix('curriculum')->name('curriculum.')->middleware(['auth', 'role:curriculum'])->group(function () {
@@ -59,6 +60,9 @@ Route::prefix('curriculum')->name('curriculum.')->middleware(['auth', 'role:curr
         Route::delete('classes/{classroom}', [ManagementClassroomController::class, 'destroy'])->name('classes.destroy');
 
         Route::get('schedules', [ManagementScheduleController::class, 'index'])->name('schedules');
+        Route::post('schedules', [ManagementScheduleController::class, 'store'])->name('schedules.store');
+        Route::put('schedules/{schedule}', [ManagementScheduleController::class, 'update'])->name('schedules.update');
+        Route::delete('schedules/{schedule}', [ManagementScheduleController::class, 'destroy'])->name('schedules.destroy');
     });
 
     Route::prefix('monitoring')->name('monitoring.')->group(function () {

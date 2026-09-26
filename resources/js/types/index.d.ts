@@ -52,6 +52,54 @@ export interface Period {
     end_time: string;
 }
 
+export type SchoolDay =
+    | 'Monday'
+    | 'Tuesday'
+    | 'Wednesday'
+    | 'Thursday'
+    | 'Friday';
+
+export type AttendanceStatus = 'H' | 'A' | 'I' | 'S';
+
+export interface Journal {
+    id: string;
+    name: string;
+    date: string;
+    schedule_detail_id: string;
+}
+
+export interface Attendance {
+    id: string;
+    journal_id: string;
+    student_id: string;
+    status: AttendanceStatus;
+}
+
+export interface ScheduleDetail {
+    id: string;
+    schedule_id: string;
+    subject_id: string;
+    class_id: string;
+    teacher_id: string;
+    day: SchoolDay;
+    start_period_id: string;
+    end_period_id: string;
+    subject: Subject | null;
+    teacher: Teacher | null;
+    classroom: Classroom | null;
+    start_period: Period | null;
+    end_period: Period | null;
+    journal: Journal | null;
+}
+
+export interface Schedule {
+    id: string;
+    name: string;
+    active_date: string;
+    schedule_details_count?: number;
+    schedule_details?: ScheduleDetail[];
+}
+
 export interface PaginatedLink {
     url: string | null;
     label: string;
