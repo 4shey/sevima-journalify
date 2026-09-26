@@ -7,9 +7,6 @@ use Illuminate\Database\Seeder;
 
 class SubjectSeeder extends Seeder
 {
-    /**
-     * Seed five subjects.
-     */
     public function run(): void
     {
         $subjects = [
@@ -18,6 +15,11 @@ class SubjectSeeder extends Seeder
             ['name' => 'Bahasa Inggris', 'code' => 'BING'],
             ['name' => 'Dasar Pemrograman', 'code' => 'DPM'],
             ['name' => 'Dasar Desain Grafis', 'code' => 'DDG'],
+            ['name' => 'Fisika', 'code' => 'FIS'],
+            ['name' => 'Kimia', 'code' => 'KIM'],
+            ['name' => 'Biologi', 'code' => 'BIO'],
+            ['name' => 'Sejarah', 'code' => 'SEJ'],
+            ['name' => 'Pendidikan Pancasila', 'code' => 'PPKN'],
         ];
 
         foreach ($subjects as $subject) {
