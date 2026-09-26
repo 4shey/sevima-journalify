@@ -1,0 +1,55 @@
+services:
+  app:
+    build: .
+    container_name: journalify-app
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+      - vendor_data:/var/www/html/vendor
+      - storage_data:/var/www/html/storage
+    depends_on:
+      - db
+
+  vite:
+    build:
+      context: .
+      dockerfile: Dockerfile.vite
+    container_name: journalify-vite
+    working_dir: /var/www/html
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./:/var/www/html
+      - node_modules_data:/var/www/html/node_modules
+    depends_on:
+      - app
+
+  db:
+    image: mysql:8.0
+    container_name: journalify-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: journalify-db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: journalify-phpmyadmin
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: root
+    depends_on:
+      - db
+
+volumes:
+  mysql_data:
+  vendor_data:
+  node_modules_data:
+  storage_data:
