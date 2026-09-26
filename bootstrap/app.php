@@ -17,7 +17,25 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        //
+        $middleware->alias([
+            'role' => \App\Http\Middleware\EnsureRole::class,
+        ]);
+
+        $middleware->redirectGuestsTo(fn () => route('login'));
+
+        \Illuminate\Auth\Middleware\RedirectIfAuthenticated::redirectUsing(
+            function (Request $request) {
+                $user = $request->user();
+
+                if (! $user) {
+                    return '/';
+                }
+
+                return $user->isTeacher()
+                    ? route('teacher.dashboard', absolute: false)
+                    : route('curriculum.dashboard', absolute: false);
+            }
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

@@ -33,12 +33,37 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
+                'user' => fn () => $this->userPayload($request),
             ],
             'ziggy' => fn () => [
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),
             ],
+        ];
+    }
+
+    /**
+     * Build the shared payload for the authenticated user.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function userPayload(Request $request): ?array
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return null;
+        }
+
+        $teacher = $user->teacher;
+        $curriculum = $user->curriculum;
+
+        return [
+            'id' => $user->id,
+            'email' => $user->email,
+            'role' => $user->role?->value,
+            'name' => $teacher?->name ?? $curriculum?->name,
+            'code' => $teacher?->code,
         ];
     }
 }

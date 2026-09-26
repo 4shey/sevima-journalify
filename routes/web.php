@@ -1,27 +1,52 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use Illuminate\Foundation\Application;
+use App\Http\Controllers\Curriculum\DashboardController as CurriculumDashboardController;
+use App\Http\Controllers\Curriculum\Management\ScheduleController as ManagementScheduleController;
+use App\Http\Controllers\Curriculum\Management\StudentController as ManagementStudentController;
+use App\Http\Controllers\Curriculum\Management\SubjectController as ManagementSubjectController;
+use App\Http\Controllers\Curriculum\Management\TeacherController as ManagementTeacherController;
+use App\Http\Controllers\Curriculum\Monitoring\AttendanceController as MonitoringAttendanceController;
+use App\Http\Controllers\Curriculum\Monitoring\JournalController as MonitoringJournalController;
+use App\Http\Controllers\Teacher\DashboardController as TeacherDashboardController;
+use App\Http\Controllers\Teacher\JournalController as TeacherJournalController;
+use App\Http\Controllers\Teacher\ScheduleController as TeacherScheduleController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
+Route::get('/', function (Request $request) {
+    $user = $request->user();
+
+    if (! $user) {
+        return redirect()->route('login');
+    }
+
+    return redirect()->to(
+        $user->isTeacher()
+            ? route('teacher.dashboard', absolute: false)
+            : route('curriculum.dashboard', absolute: false)
+    );
 });
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
-
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+Route::prefix('teacher')->name('teacher.')->middleware(['auth', 'role:teacher'])->group(function () {
+    Route::get('dashboard', [TeacherDashboardController::class, 'index'])->name('dashboard');
+    Route::get('schedule', [TeacherScheduleController::class, 'index'])->name('schedule');
+    Route::get('journal', [TeacherJournalController::class, 'index'])->name('journal');
 });
 
-require __DIR__.'/auth.php';
+Route::prefix('curriculum')->name('curriculum.')->middleware(['auth', 'role:curriculum'])->group(function () {
+    Route::get('dashboard', [CurriculumDashboardController::class, 'index'])->name('dashboard');
+
+    Route::prefix('management')->name('management.')->group(function () {
+        Route::get('teachers', [ManagementTeacherController::class, 'index'])->name('teachers');
+        Route::get('students', [ManagementStudentController::class, 'index'])->name('students');
+        Route::get('subjects', [ManagementSubjectController::class, 'index'])->name('subjects');
+        Route::get('schedules', [ManagementScheduleController::class, 'index'])->name('schedules');
+    });
+
+    Route::prefix('monitoring')->name('monitoring.')->group(function () {
+        Route::get('journals', [MonitoringJournalController::class, 'index'])->name('journals');
+        Route::get('attendance', [MonitoringAttendanceController::class, 'index'])->name('attendance');
+    });
+});
+
+require __DIR__ . '/auth.php';

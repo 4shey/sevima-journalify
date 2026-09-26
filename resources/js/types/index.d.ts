@@ -1,17 +1,20 @@
 import { Config } from 'ziggy-js';
 
+export type UserRole = 'teacher' | 'curriculum';
+
 export interface User {
-    id: number;
-    name: string;
+    id: string;
     email: string;
-    email_verified_at?: string;
+    role: UserRole;
+    name: string | null;
+    code?: string | null;
 }
 
 export type PageProps<
     T extends Record<string, unknown> = Record<string, unknown>,
 > = T & {
     auth: {
-        user: User;
+        user: User | null;
     };
     ziggy: Config & { location: string };
 };
