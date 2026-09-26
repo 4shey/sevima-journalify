@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
 use Tighten\Ziggy\Ziggy;
 
@@ -40,6 +41,13 @@ class HandleInertiaRequests extends Middleware
                 'location' => $request->url(),
             ],
             'flash' => fn () => $request->session()->get('flash'),
+            'simulatedTime' => fn () => [
+                'is_set' => Cache::has('simulated_time'),
+                'datetime' => now()->format('Y-m-d H:i:s'),
+                'date' => now()->format('Y-m-d'),
+                'time' => now()->format('H:i'),
+                'formatted' => now()->locale('id')->isoFormat('dddd, D MMM YYYY, HH:mm'),
+            ],
         ];
     }
 
